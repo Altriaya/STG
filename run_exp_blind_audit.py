@@ -126,12 +126,14 @@ def main(config):
                     
                     # Manual Injection for simplicity matching Trainer logic:
                     # features [B, N, L]
-                    data_bef = enc_inp[:, attacker.atk_vars, -attacker.trigger_len-attacker.bef_tgr_len:-attacker.trigger_len]
-                    triggers = attacker.predict_trigger(data_bef)[0]
-                    triggers = triggers.reshape(-1, attacker.atk_vars.shape[0], attacker.trigger_len)
+                    # Manual Injection for simplicity matching Trainer logic:
+                    # features [B, N, L]
+                    data_bef = enc_inp[:, self.attacker.atk_vars, -self.attacker.trigger_len-self.attacker.bef_tgr_len:-self.attacker.trigger_len]
+                    triggers = self.attacker.predict_trigger(data_bef)[0]
+                    triggers = triggers.reshape(-1, self.attacker.atk_vars.shape[0], self.attacker.trigger_len)
                     
                     # Inject
-                    enc_inp[:, attacker.atk_vars, -attacker.trigger_len:] = triggers
+                    enc_inp[:, self.attacker.atk_vars, -self.attacker.trigger_len:] = triggers
                     
                     # Return modified batch
                     # Re-pack is hard because batch is tuple.
@@ -148,7 +150,8 @@ def main(config):
     auditor = SpectralAuditor(DEVICE)
     # Increase samples for stability
     # Check 3% contamination (Standard Attack)
-    auditor.fit_blind_reference(poisoned_stream, use_timestamps=trainer.use_timestamps, max_samples=300, contamination=0.05, iterations=2)
+    # Reservoir Sampling K=500 (> N=358 for PEMS03)
+    auditor.fit_blind_reference(poisoned_stream, use_timestamps=trainer.use_timestamps, max_samples=500, contamination=0.10, iterations=2)
     
     blind_ref_score = auditor.ref_precision.mean().item()
     print(f"Blind Reference Mean Value: {blind_ref_score:.4f}")
